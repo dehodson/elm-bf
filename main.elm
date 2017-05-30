@@ -36,6 +36,46 @@ safeget ptr memory =
     Nothing -> 1
     Just x -> x
 
+find_end string pos balance =
+  let
+    character = (String.slice pos (pos + 1) string)
+  in
+    if pos == (String.length string) then
+        String.length string
+    else
+      if character == "[" then
+        find_end string (pos + 1) (balance + 1)
+      else if character == "]" then
+        if balance == 1 then
+          pos
+        else
+          find_end string (pos + 1) (balance - 1)
+      else
+        find_end string (pos + 1) balance
+
+find_start string pos balance =
+  let
+    character = (String.slice pos (pos + 1) string)
+  in
+    if character == "[" then
+      if balance == 1 then
+        pos
+      else
+        find_start string (pos - 1) (balance + 1)
+    else if character == "]" then
+        find_end string (pos - 1) (balance - 1)
+    else
+      find_end string (pos - 1) balance
+
+loop_start string memory ptr pos =
+  if (safeget ptr memory) == 0 then
+    find_end string (pos + 1) 1
+  else
+    (pos + 1)
+
+loop_end string memory ptr pos =
+  find_start string (pos - 1) 0
+
 compile string memory ptr output pos =
   if pos == (String.length string) then
     output
@@ -47,6 +87,8 @@ compile string memory ptr output pos =
       "<" -> compile string memory (ptr - 1) output (pos + 1)
       "." -> compile string memory ptr (output ++ (String.cons 
         (Char.fromCode (safeget ptr memory)) "")) (pos + 1)
+      "[" -> compile string memory ptr output (loop_start string memory ptr (pos + 1))
+      "]" -> compile string memory ptr output (loop_end string memory ptr (pos - 1))
       _ -> compile string memory ptr output (pos + 1)
 
 -- VIEW
