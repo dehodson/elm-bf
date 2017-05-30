@@ -24,10 +24,10 @@ model : Model
 model =
   Model ""
 
-update (NewContents reddit) oldContent =
+update (NewContents program) oldContent =
   let
     output =
-      (compile reddit (Array.initialize 4 (always 0)) 0 "")
+      (compile program (Array.initialize 4 (always 0)) 0 "" 0)
   in
     { model | content = output }
     
@@ -36,25 +36,25 @@ safeget ptr memory =
     Nothing -> 1
     Just x -> x
 
-compile string memory ptr output =
-   case String.uncons string of
-    Nothing -> output
-    Just (a, b) -> 
-      case a of 
-        '+' -> compile b (Array.set ptr ((safeget ptr memory) + 1) memory) ptr output
-        '-' -> compile b (Array.set ptr ((safeget ptr memory) - 1) memory) ptr output
-        '>' -> compile b memory (ptr + 1) output
-        '<' -> compile b memory (ptr - 1) output
-        '.' -> compile b memory ptr (output ++ (String.cons 
-          (Char.fromCode (safeget ptr memory)) ""))
-        _ -> compile b memory ptr output
+compile string memory ptr output pos =
+  if pos == (String.length string) then
+    output
+  else
+    case (String.slice pos (pos + 1) string) of 
+      "+" -> compile string (Array.set ptr ((safeget ptr memory) + 1) memory) ptr output (pos + 1)
+      "-" -> compile string (Array.set ptr ((safeget ptr memory) - 1) memory) ptr output (pos + 1)
+      ">" -> compile string memory (ptr + 1) output (pos + 1)
+      "<" -> compile string memory (ptr - 1) output (pos + 1)
+      "." -> compile string memory ptr (output ++ (String.cons 
+        (Char.fromCode (safeget ptr memory)) "")) (pos + 1)
+      _ -> compile string memory ptr output (pos + 1)
 
 -- VIEW
 
-view tamale =
+view model =
   div []
-    [ input [ placeholder "Text to reverse", onInput NewContents, myStyle ] []
-    , div [ myStyle ] [ text tamale.content ]
+    [ input [ placeholder "Program", onInput NewContents, myStyle ] []
+    , div [ myStyle ] [ text model.content ]
     ]
 
 myStyle =
