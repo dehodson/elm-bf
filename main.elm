@@ -7,6 +7,7 @@ import Html.Events exposing (onInput)
 import String
 import Array
 import Char
+import Debug
 
 main =
   beginnerProgram { model = model, view = view, update = update }
@@ -38,7 +39,7 @@ safeget ptr memory =
 
 find_end string pos balance =
   let
-    character = (String.slice pos (pos + 1) string)
+    character = String.slice pos (pos + 1) string
   in
     if pos == (String.length string) then
         String.length string
@@ -47,7 +48,7 @@ find_end string pos balance =
         find_end string (pos + 1) (balance + 1)
       else if character == "]" then
         if balance == 1 then
-          pos
+          (pos + 1)
         else
           find_end string (pos + 1) (balance - 1)
       else
@@ -55,17 +56,17 @@ find_end string pos balance =
 
 find_start string pos balance =
   let
-    character = (String.slice pos (pos + 1) string)
+    character = String.slice pos (pos + 1) string
   in
     if character == "[" then
-      if balance == 1 then
+      if balance == 0 then
         pos
       else
         find_start string (pos - 1) (balance + 1)
     else if character == "]" then
-        find_end string (pos - 1) (balance - 1)
+        find_start string (pos - 1) (balance - 1)
     else
-      find_end string (pos - 1) balance
+      find_start string (pos - 1) balance
 
 loop_start string memory ptr pos =
   if (safeget ptr memory) == 0 then
@@ -87,8 +88,8 @@ compile string memory ptr output pos =
       "<" -> compile string memory (ptr - 1) output (pos + 1)
       "." -> compile string memory ptr (output ++ (String.cons 
         (Char.fromCode (safeget ptr memory)) "")) (pos + 1)
-      "[" -> compile string memory ptr output (loop_start string memory ptr (pos + 1))
-      "]" -> compile string memory ptr output (loop_end string memory ptr (pos - 1))
+      "[" -> compile string memory ptr output (loop_start string memory ptr pos)
+      "]" -> compile string memory ptr output (loop_end string memory ptr pos)
       _ -> compile string memory ptr output (pos + 1)
 
 -- VIEW
