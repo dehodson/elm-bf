@@ -19,16 +19,17 @@ type Msg = NewContents String
 
 type alias Model =
   { content : String
+  , input : String
   }
   
 model : Model
 model =
-  Model ""
+  Model "" "Said I calmed down since the last album"
 
 update (NewContents program) oldContent =
   let
     output =
-      (compile program (Array.initialize 4 (always 0)) 0 "" 0)
+      (compile program (Array.initialize 256 (always 0)) 0 "" 0 model.input)
   in
     { model | content = output }
     
@@ -77,20 +78,27 @@ loop_start string memory ptr pos =
 loop_end string memory ptr pos =
   find_start string (pos - 1) 0
 
-compile string memory ptr output pos =
+take_input string memory ptr output pos input =
+  case String.uncons input of
+    Just (a, b) -> 
+      compile string (Array.set ptr (Char.toCode a) memory) ptr output (pos + 1) b
+    _ -> compile string memory ptr output (pos + 1) input
+
+compile string memory ptr output pos input =
   if pos == (String.length string) then
     output
   else
     case (String.slice pos (pos + 1) string) of 
-      "+" -> compile string (Array.set ptr ((safeget ptr memory) + 1) memory) ptr output (pos + 1)
-      "-" -> compile string (Array.set ptr ((safeget ptr memory) - 1) memory) ptr output (pos + 1)
-      ">" -> compile string memory (ptr + 1) output (pos + 1)
-      "<" -> compile string memory (ptr - 1) output (pos + 1)
+      "+" -> compile string (Array.set ptr ((safeget ptr memory) + 1) memory) ptr output (pos + 1) input
+      "-" -> compile string (Array.set ptr ((safeget ptr memory) - 1) memory) ptr output (pos + 1) input
+      ">" -> compile string memory (ptr + 1) output (pos + 1) input
+      "<" -> compile string memory (ptr - 1) output (pos + 1) input
       "." -> compile string memory ptr (output ++ (String.cons 
-        (Char.fromCode (safeget ptr memory)) "")) (pos + 1)
-      "[" -> compile string memory ptr output (loop_start string memory ptr pos)
-      "]" -> compile string memory ptr output (loop_end string memory ptr pos)
-      _ -> compile string memory ptr output (pos + 1)
+        (Char.fromCode (safeget ptr memory)) "")) (pos + 1) input
+      "," -> take_input string memory ptr output pos input
+      "[" -> compile string memory ptr output (loop_start string memory ptr pos) input
+      "]" -> compile string memory ptr output (loop_end string memory ptr pos) input
+      _ -> compile string memory ptr output (pos + 1) input
 
 -- VIEW
 
