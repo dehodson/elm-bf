@@ -15,23 +15,33 @@ main =
 
 -- UPDATE
 
-type Msg = NewContents String
+type Msg 
+  = NewContents String
+  | Input String
 
 type alias Model =
   { content : String
+  , program : String
   , input : String
   }
   
 model : Model
 model =
-  Model "" "Said I calmed down since the last album"
+  Model "" "" ""
 
-update (NewContents program) oldContent =
-  let
-    output =
-      (compile program (Array.initialize 256 (always 0)) 0 "" 0 model.input)
-  in
-    { model | content = output }
+update msg model =
+  case msg of
+    NewContents program ->
+      let
+        output =
+          (compile program (Array.initialize 256 (always 0)) 0 "" 0 model.input)
+      in
+        { model | content = output, program = program }
+    Input input ->
+      let output =
+        (compile model.program (Array.initialize 256 (always 0)) 0 "" 0 input)
+      in
+        { model | content = output, input = input }
     
 safeget ptr memory =
   case Array.get ptr memory of
@@ -105,6 +115,7 @@ compile string memory ptr output pos input =
 view model =
   div []
     [ input [ placeholder "Program", onInput NewContents, myStyle ] []
+    , input [ placeholder "Input", onInput Input, myStyle ] []
     , div [ myStyle ] [ text model.content ]
     ]
 
